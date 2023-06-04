@@ -7,7 +7,17 @@ from quart import request
 # Note: Setting CORS to allow chat.openapi.com is only required when running a localhost plugin
 app = quart_cors.cors(quart.Quart(__name__), allow_origin="https://chat.openai.com")
 
+# deployment
+# app = quart_cors.cors(quart.Quart(__name__))
+
+
+# This key can be anything, though you will likely want a randomly generated sequence.
+_SERVICE_AUTH_KEY = "REPLACE_ME"
 _TODOS = {}
+
+def assert_auth_header(req):
+    assert req.headers.get(
+        "Authorization", None) == f"Bearer {_SERVICE_AUTH_KEY}"
 
 
 @app.post("/todos/<string:username>")
@@ -21,11 +31,13 @@ async def add_todo(username):
 
 @app.get("/todos/<string:username>")
 async def get_todos(username):
+    assert_auth_header(quart.request)
     return quart.Response(response=json.dumps(_TODOS.get(username, [])), status=200)
 
 
 @app.delete("/todos/<string:username>")
 async def delete_todo(username):
+    assert_auth_header(quart.request)
     request = await quart.request.get_json(force=True)
     todo_idx = request["todo_idx"]
     if 0 <= todo_idx < len(_TODOS[username]):
@@ -52,7 +64,7 @@ async def plugin_manifest():
 @app.get("/openapi.yaml")
 async def openapi_spec():
     host = request.headers['Host']
-    print('ertuuu:', host)
+    print('host::', host)
     with open("openapi.yaml") as f:
         text = f.read()
      
